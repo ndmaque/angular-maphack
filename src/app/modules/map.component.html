@@ -1,53 +1,71 @@
     
 
 <div id="mapScripts"></div>
-<!-- form -->
-<form [formGroup]="profileForm">
-  
 
+<!-- form -->
+<form [formGroup]="form">
+  
   <div class="form-group">
-    <label for="targets">Select a target: </label>
-       
-    <select id="targets" class="form-control" formControlName="target" (change)="selectTarget()" >
-      <option value="">Select...</option>
-      <option *ngFor="let t of targets" >{{ t.domain }}</option>
-    </select>
+    <div class="form-row">
+      <div class="col-sm-5 my-1">
+        <div class="input-group">
+          <div class="input-group-prepend">
+            <label  class="input-group-text" for="targets">Targets</label>
+          </div>
+          <select id="targets" class="form-control" formControlName="target" (change)="selectTarget()" >
+            <option value="">Select...</option>
+            <option *ngFor="let t of targets">{{ t.domain }}</option>
+          </select>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <!--<label>
-    First Name:
-    <input type="text" formControlName="firstName">
-  </label>
-  -->
+  <div *ngIf="selectedTarget">
+    <div class="input-group">
+      <div class="input-group-prepend">
+        <label  class="input-group-text" for="target-key">CC key</label>
+      </div>
+      <input type="text" id="target-key" class="form-control" formControlName="key">
+    </div>
+  </div>
 
 </form>
+<!-- 
+<div *ngFor="let m of lastMessages()">{{m.title}} : {{m.text}}</div>
+-->
+<div>Log {{logMsg}}</div>
+
 
 <div *ngIf="selectedTarget">
-     <div>Using borrowed GoogleMaps Credit card Key: <div>{{selectedTarget.key}}</div></div>
 
-    <button (click)="loadMap()">Load Map</button> &nbsp; 
-    <button (click)="mapLoop()">Loop Map </button>
-	<div>
-    <div *ngIf="selectedTarget">
-      <div>Load Count: {{selectedTarget.loadCount}}</div>
-      <div>Search Count: {{selectedTarget.searchCount}}</div>
-      <div>Street Count: {{selectedTarget.streetCount}}</div>
+
+  <button class="btn btn-primary" (click)="loadMap(); showHide.map = !showHide.map">Load Map</button>
+    &nbsp; &nbsp; 
+  <button *ngIf="showHide.map" class="btn btn-primary" (click)="mapSearch()">Search Map</button> {{searchStr}}
+
+  <div *ngIf="showHide.map" class="row">
+    <div class="col-md-12 col-sm-5 my-1">
+      <button type="button" class="btn btn-secondary">
+        Load Count {{selectedTarget.loadCount}} <br>
+        <span class="badge badge-warning">{{selectedTarget.loadCount}} @ $0.002 = ${{(selectedTarget.loadCount * 0.002).toFixed(3)}}</span>
+      </button>
+       &nbsp; &nbsp; 
+      <button type="button" class="btn btn-secondary">
+        Search Count {{selectedTarget.searchCount}} <br>
+        <span class="badge badge-warning">{{selectedTarget.searchCount}} @ $0.005 = ${{(selectedTarget.searchCount * 0.017).toFixed(3)}}</span>
+      </button>
     </div>
-    <!--<p>
-      <label for="repeat">Repeat</label> 
-      <input id="repeat" type="text" value="1000">
-      <i>?</i>
-    </p>-->
+<!--
+  <iframe *ngIf="showHide.iframe" src="{{getIframeUrl()}}"></iframe>
+  -->
 
-  <!--
-    <iframe id="steriaMap" src="https://www.ukvcas.co.uk/locations"></iframe>
-    -->
 
 
 </div>
 
 <div>
-  <div style="height:300px; width:450px; border: 2px solid red" id="map2">Waiting...</div>
+  <div  [ngStyle]="{'display': showHide.map ?'block': 'none'}" id="map2">Waiting...</div>
 </div>
 <!--
 <div id="staticMap">

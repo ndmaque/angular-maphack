@@ -1,3 +1,9 @@
 h2 {
   color: red;
 }
+
+#map2 {
+  height:300px; 
+  width:450px; 
+  border: 2px solid red;
+}

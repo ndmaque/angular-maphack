@@ -1,6 +1,9 @@
 import { Component, Input, OnInit, Inject, Renderer2 } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
 import { DOCUMENT } from '@angular/common';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+
+
 declare const google;
 
 @Component({
@@ -11,30 +14,33 @@ declare const google;
 export class MapComponent implements OnInit {
   @Input() name: string;
 
-  formA = new FormControl('');
+  constructor(
+    @Inject(DOCUMENT) 
+    private document: Document,
+    private renderer2: Renderer2,
+    public sanitizer: DomSanitizer
+  ) {};
 
-
-  //mapKey : string;
-  //defaultDomain: string;
-  domainName = 'https://ukvcas.co.uk/locations';
-  postcodes : Array <string> = ['B3 3HN','WV1 3AX', 'S1 2BJ'];
+ // domainName = 'https://ukvcas.co.uk/locations';
+  postcodes : Array <string> = ['PL17 0AE','WV1 3AX','BN1 1AE', 'S1 2BJ', 'EH1 1AD', 'BT1 1AA','B3 3HN'];
   searchStr : string;
   targets: Array<any>;
   messages: Array<any> = [];
+  logMsg: string;
   selectedTarget: any;
- // powers = ['Really Smart', 'Super Flexible', 'Super Hot', 'Weather Changer'];
- // map: any;
-  //p: number;
+  showHide = {map: false, iframe: false, static: false };
+  mapCentre = { lat: 53.397, lng: -1.644 };
+  
 
-  constructor(@Inject(DOCUMENT) private document: Document,
-    private renderer2: Renderer2,
-  ) {}
+
 
 
   ngOnInit(){
+    console.log ('show', this.showHide);
+    this.messages = [];
     this.targets = [{
       domain: 'ukvcas.co.uk',
-      mapPage: 'https://www.ukvcas.co.uk/locations/',
+      mapPage: 'https://www.ukvcas.co.uk/locations/#postcode',
       key: 'AIzaSyBmLVuHdy3sHjvgQhpONIGBKnOJxJ61pG4',
       loadCount: 0,
       searchCount: 0,
@@ -58,27 +64,42 @@ export class MapComponent implements OnInit {
     }]
   };
 
-  profileForm = new FormGroup({
-    firstName: new FormControl(''),
-    lastName: new FormControl(''),
+  form = new FormGroup({
+    domain: new FormControl(''),
     target: new FormControl(''),
+    mapPage: new FormControl(''),
+    key: new FormControl(''),
   });
 
 // start after the domain drop down action
   public selectTarget() {
-    console.log('selectTarget', this.profileForm.value.target);
-    if(this.profileForm.value.target) { 
-      this.selectedTarget = this.targets.find(t => t.domain === this.profileForm.value.target);
-      console.log('selected', this.selectedTarget);
-      this.messages.push({title:'selectedTarget', text: this.selectedTarget.domain})
+    console.log('profileForm', this.form.value.target);
+    if(this.form.value.target) { 
+      this.selectedTarget = this.targets.find(t => t.domain === this.form.value.target);
+    //  console.log('selected', this.selectedTarget);
+      this.messages.push({title:'selectedTarget', text: this.selectedTarget.domain});
+    this.form.controls.key.reset(this.selectedTarget.key, true)  ;
+    this.form.controls.domain.reset(this.selectedTarget.domain, true)  ;
+    this.form.controls.mapPage.reset(this.selectedTarget.mapPage, true)  ;
+
+      //
     } else {
-      delete this.selectedTarget ;
+      this.selectedTarget = null;
     }
 
+  };
+
+  lastMessages() {
+    return this.messages.reverse()
+  }
+
+  getIframeUrl() {
+// ss
+ return this.sanitizer.bypassSecurityTrustResourceUrl(this.form.value.mapPage);
   }
 
   loadMap() {
-    const url = 'https://maps.googleapis.com/maps/api/js?key=' + this.selectedTarget.key;
+    const url = 'https://maps.googleapis.com/maps/api/js?key=' + this.form.value.key;
     this.loadScript(url).then(() => {
       this.initMap();
       this.selectedTarget.loadCount ++;
@@ -105,27 +126,33 @@ export class MapComponent implements OnInit {
 
   public initMap() {
    const map = new google.maps.Map(document.getElementById("map2"), {
-    zoom: 8,
-    center: { lat: -34.397, lng: 150.644 },
+    zoom: 5,
+    center: this.mapCentre,
     });
     this.messages.push({title: 'initMap', text: 'map loaded'})
   }
 
+msgLog(msg) {
+  this.logMsg = msg;
+}
+
 geocodeAddress(geocoder, resultsMap) {
 
-  this.messages.push({title: 'geocodeAddress', text: 'Search: ' + this.searchStr});
+ // this.messages.push({title: 'geocodeAddress', text: 'Search: ' + this.searchStr});
+  this.msgLog('Address search: ' + this.searchStr);
 
   geocoder.geocode({ address: this.searchStr }, (results, status) => {
     
     if (status === "OK") {
-      this.messages.push({title: 'geocodeAddress',  text: 'Found: ' +results[0].formatted_address});
+      this.selectedTarget.searchCount++;
+      //this.messages.push({title: 'geocodeAddress',  text: 'Found: ' +results[0].formatted_address});
+      this.msgLog('Google $Search Found: ' + results[0].formatted_address);
       
       resultsMap.setCenter(results[0].geometry.location);
       new google.maps.Marker({
         map: resultsMap,
         position: results[0].geometry.location,
       });
-
     } else {
       this.messages.push({title: 'geocodeAddress',  text: 'Error: ' + status});
     }
@@ -138,12 +165,17 @@ sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-mapLoop()  {
+mapSearch()  {
   const geocoder = new google.maps.Geocoder();
   const map = new google.maps.Map(document.getElementById("map2"), {
     zoom: 6,
-    center: { lat: -34.397, lng: 150.644 },
-    });
+    center: this.mapCentre,
+  });
+
+  //let x = new google.maps.LatLng(53.0,-1.0);
+  //console.log();
+
+  this.selectedTarget.loadCount++;
 
   for ( const p in this.postcodes) {
     let x = Number(p) * 2000;
@@ -153,14 +185,16 @@ mapLoop()  {
       this.searchStr = '' + this.postcodes[p] + ', UK';
       this.geocodeAddress(geocoder, map) 
 
+      //map.setCenter(new google.maps.LatLng(53.0,-1.0));
     });
+      map.setZoom(4);
+  map.setCenter( this.mapCentre);
   }
+
+
+
 }
 
-test() {
-  console.log('test');
-  this.mapLoop();
-}
 
   /*
   staticMapString = `
