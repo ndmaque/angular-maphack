@@ -38,14 +38,7 @@ export class MapComponent implements OnInit {
   ngOnInit(){
     console.log ('show', this.showHide);
     this.messages = [];
-    this.targets = [{
-      domain: 'ukvcas.co.uk',
-      mapPage: 'https://www.ukvcas.co.uk/locations/#postcode',
-      key: 'AIzaSyBmLVuHdy3sHjvgQhpONIGBKnOJxJ61pG4',
-      loadCount: 0,
-      searchCount: 0,
-      streetCount: 0,
-    },
+    this.targets = [
     {
       domain: 'glocalabel.com',
       mapPage: 'https://glocalabel.com/network/277-mango-address/nottingham/',
